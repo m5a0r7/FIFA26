@@ -1,0 +1,2 @@
+model_version,matches,brier_score,log_loss,accuracy,calibration_error
+v0_rule_based,8,0.5714,0.9678,0.5,0.1867

@@ -1,0 +1,9 @@
+date,competition,team_a,team_b,elo_a,elo_b,fifa_rank_a,fifa_rank_b,squad_quality_a,squad_quality_b,last5_points_a,last5_points_b,goals_for_last5_a,goals_for_last5_b,goals_against_last5_a,goals_against_last5_b,injuries_a,injuries_b,suspensions_a,suspensions_b,tournament_experience_a,tournament_experience_b,host_a,host_b,actual_result,goals_a,goals_b
+2022-12-18,World Cup,Argentina,France,2110,2130,3,4,91,93,13,12,11,12,5,6,1,2,0,0,95,94,false,false,D,3,3
+2022-12-14,World Cup,France,Morocco,2130,1925,4,22,93,78,12,10,12,6,6,3,2,1,0,0,94,68,false,false,A,2,0
+2022-12-13,World Cup,Argentina,Croatia,2110,1980,3,12,91,82,13,11,11,7,5,4,1,2,0,0,95,82,false,false,A,3,0
+2022-12-10,World Cup,England,France,2050,2130,5,4,88,93,10,12,10,12,5,6,1,2,0,0,84,94,false,false,B,1,2
+2022-12-09,World Cup,Netherlands,Argentina,2020,2110,8,3,84,91,10,13,9,11,5,5,1,1,0,0,86,95,false,false,D,2,2
+2018-07-15,World Cup,France,Croatia,2070,1980,7,20,90,82,12,11,10,8,4,5,1,2,0,0,90,78,false,false,A,4,2
+2014-07-13,World Cup,Germany,Argentina,2100,2050,2,5,91,88,13,11,13,8,4,3,1,2,0,0,96,92,false,false,D,1,0
+2010-07-11,World Cup,Spain,Netherlands,2080,2025,2,4,89,86,12,13,8,11,2,5,1,1,0,0,88,82,false,false,D,1,0
