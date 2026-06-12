@@ -74,10 +74,7 @@ class WorldCupAgent:
             matches = self.tools.get_match_schedule()
             freshness = self.tools.get_data_freshness()
             return ChatResponse(
-                answer=(
-                    "Here are the scheduled matches currently loaded. "
-                    f"Data source: {freshness['source'] or 'seed fallback'}."
-                ),
+                answer=self._schedule_text(freshness),
                 mode="facts",
                 data={"matches": matches, "freshness": freshness, "session_id": session_id},
             )
@@ -152,3 +149,22 @@ class WorldCupAgent:
             f"{team_a} win: {a_pct}%, draw: {draw_pct}%, {team_b} win: {b_pct}%. "
             f"Confidence is {prediction['confidence']}. {factors}"
         ).strip()
+
+    @staticmethod
+    def _schedule_text(freshness: dict[str, Any]) -> str:
+        source = freshness.get("source") or "seed fallback"
+        exists = bool(freshness.get("exists"))
+        stale = bool(freshness.get("stale"))
+
+        if not exists:
+            disclosure = "This schedule is locally loaded sample/cached data, not official real-time FIFA data."
+        elif stale:
+            disclosure = (
+                "This schedule is cached local data and may be stale, so it is not official real-time FIFA data."
+            )
+        elif source in {"seed fallback", "fallback", "local", "mock", "sample"}:
+            disclosure = "This schedule is local sample/cached data, not official real-time FIFA data."
+        else:
+            disclosure = "This schedule comes from the currently loaded cache and is not guaranteed to be official real-time FIFA data."
+
+        return f"Here are the scheduled matches currently loaded. {disclosure} Data source: {source}."
