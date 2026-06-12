@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.agents import WorldCupAgent
 from backend.app.config import Settings, get_settings
+from backend.app.data.cache import get_match_cache_status
 from backend.app.schemas import ChatRequest, ChatResponse, PredictionRequest, TelegramWebhookResponse
 from backend.app.telegram.webhook import TelegramWebhookHandler
 from backend.app.tools import FootballTools
@@ -29,6 +30,14 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/data/freshness")
+    async def data_freshness() -> dict[str, object]:
+        return get_match_cache_status()
+
+    @app.get("/matches")
+    async def matches(team: str | None = None) -> list[dict[str, object]]:
+        return football_tools.get_match_schedule(team)
 
     @app.post("/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:

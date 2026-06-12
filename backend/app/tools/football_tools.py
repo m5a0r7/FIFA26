@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from backend.app.data.cache import get_cached_matches, get_match_cache_status
 from backend.app.data.mock_data import MATCHES, STANDINGS, TEAM_SNAPSHOTS
 from backend.app.prediction.engine import PredictionEngine, TeamSnapshot
 
@@ -31,13 +32,14 @@ class FootballTools:
         }
 
     def get_match_schedule(self, team_name: str | None = None) -> list[dict[str, Any]]:
+        matches = self._matches()
         if not team_name:
-            return MATCHES
+            return matches
 
         normalized = self._normalize(team_name)
         return [
             match
-            for match in MATCHES
+            for match in matches
             if normalized in (self._normalize(match["team_a"]), self._normalize(match["team_b"]))
         ]
 
@@ -50,7 +52,7 @@ class FootballTools:
     def get_match_result(self, team_a: str, team_b: str) -> dict[str, Any]:
         normalized_a = self._normalize(team_a)
         normalized_b = self._normalize(team_b)
-        for match in MATCHES:
+        for match in self._matches():
             match_teams = {self._normalize(match["team_a"]), self._normalize(match["team_b"])}
             if {normalized_a, normalized_b} == match_teams:
                 return match
@@ -65,6 +67,9 @@ class FootballTools:
         snapshot_a = self._find_team(team_a)
         snapshot_b = self._find_team(team_b)
         return self.prediction_engine.predict(snapshot_a, snapshot_b).as_dict()
+
+    def get_data_freshness(self) -> dict[str, Any]:
+        return get_match_cache_status()
 
     def extract_matchup(self, message: str) -> tuple[str, str] | None:
         cleaned = re.sub(r"^/(predict|compare)\s+", "", message.strip(), flags=re.IGNORECASE)
@@ -93,6 +98,9 @@ class FootballTools:
 
         available = ", ".join(self.list_teams())
         raise ValueError(f"Unknown team '{team_name}'. Available teams: {available}")
+
+    def _matches(self) -> list[dict[str, Any]]:
+        return get_cached_matches() or MATCHES
 
     @staticmethod
     def _clean_team(value: str) -> str:

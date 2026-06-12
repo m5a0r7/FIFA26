@@ -17,7 +17,18 @@ export type Prediction = {
   data_freshness: string;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export type Match = {
+  date: string;
+  stage: string;
+  group?: string;
+  team_a: string;
+  team_b: string;
+  status: string;
+  score: string | null;
+  venue: string;
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8010";
 
 export async function sendChat(message: string): Promise<ChatResponse> {
   const response = await fetch(`${API_URL}/chat`, {
@@ -42,6 +53,16 @@ export async function predictMatch(teamA: string, teamB: string): Promise<Predic
 
   if (!response.ok) {
     throw new Error(`Prediction request failed with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function fetchMatches(): Promise<Match[]> {
+  const response = await fetch(`${API_URL}/matches`);
+
+  if (!response.ok) {
+    throw new Error(`Schedule request failed with status ${response.status}`);
   }
 
   return response.json();

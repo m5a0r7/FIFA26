@@ -12,7 +12,10 @@ class Settings(BaseSettings):
     telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
     telegram_webhook_secret: str | None = Field(default=None, alias="TELEGRAM_WEBHOOK_SECRET")
     public_base_url: str | None = Field(default=None, alias="PUBLIC_BASE_URL")
-    allowed_origins: str = Field(default="http://localhost:3000", alias="ALLOWED_ORIGINS")
+    allowed_origins: str = Field(
+        default="http://localhost:3010,http://127.0.0.1:3010,http://0.0.0.0:3010",
+        alias="ALLOWED_ORIGINS",
+    )
     sports_data_api_key: str | None = Field(default=None, alias="SPORTS_DATA_API_KEY")
 
     @property

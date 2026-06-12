@@ -1,15 +1,9 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import { ChatResponse, Prediction, predictMatch, sendChat } from "../lib/api";
-
-const sampleMatches = [
-  { date: "2026-06-11", teamA: "Mexico", teamB: "TBD", venue: "Estadio Azteca" },
-  { date: "2026-06-12", teamA: "USA", teamB: "TBD", venue: "Los Angeles Stadium" },
-  { date: "2026-06-12", teamA: "Canada", teamB: "TBD", venue: "Toronto Stadium" },
-];
+import { ChatResponse, Match, Prediction, fetchMatches, predictMatch, sendChat } from "../lib/api";
 
 export default function Home() {
   const [message, setMessage] = useState("/predict Brazil vs Germany");
@@ -17,8 +11,36 @@ export default function Home() {
   const [teamA, setTeamA] = useState("Brazil");
   const [teamB, setTeamB] = useState("Germany");
   const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMatches() {
+      try {
+        const loadedMatches = await fetchMatches();
+        if (!cancelled) {
+          setMatches(loadedMatches);
+        }
+      } catch (caught) {
+        if (!cancelled) {
+          setError(caught instanceof Error ? caught.message : "Schedule request failed");
+        }
+      } finally {
+        if (!cancelled) {
+          setScheduleLoading(false);
+        }
+      }
+    }
+
+    loadMatches();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const chartData = useMemo(() => {
     if (!prediction) return [];
@@ -162,13 +184,19 @@ export default function Home() {
 
         <section className="grid gap-5 lg:grid-cols-[1fr_420px]">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-4 shadow-sm">
-            <h2 className="text-lg font-semibold">Sample schedule</h2>
+            <h2 className="text-lg font-semibold">Schedule</h2>
             <div className="mt-4 divide-y divide-[var(--border)]">
-              {sampleMatches.map((match) => (
-                <div key={`${match.date}-${match.teamA}`} className="grid gap-2 py-3 sm:grid-cols-[130px_1fr_1fr]">
+              {scheduleLoading ? (
+                <div className="py-3 text-sm text-slate-600">Loading schedule...</div>
+              ) : null}
+              {!scheduleLoading && matches.length === 0 ? (
+                <div className="py-3 text-sm text-slate-600">No matches loaded.</div>
+              ) : null}
+              {matches.map((match) => (
+                <div key={`${match.date}-${match.team_a}-${match.team_b}`} className="grid gap-2 py-3 sm:grid-cols-[130px_1fr_1fr]">
                   <span className="text-sm font-medium text-slate-500">{match.date}</span>
                   <span className="font-semibold">
-                    {match.teamA} vs {match.teamB}
+                    {match.team_a} vs {match.team_b}
                   </span>
                   <span className="text-sm text-slate-600 sm:text-right">{match.venue}</span>
                 </div>

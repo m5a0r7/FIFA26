@@ -6,17 +6,19 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3010,http://127.0.0.1:3010,http://0.0.0.0:3010}
     ports:
-      - "8000:8000"
+      - "8010:8010"
 
   frontend:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_API_URL: http://localhost:8010
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8010
     ports:
-      - "3000:3000"
+      - "3010:3010"
     depends_on:
       - backend

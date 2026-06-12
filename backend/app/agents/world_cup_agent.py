@@ -72,10 +72,14 @@ class WorldCupAgent:
 
         if "today" in lowered or "schedule" in lowered or "next" in lowered or lowered.startswith("/today"):
             matches = self.tools.get_match_schedule()
+            freshness = self.tools.get_data_freshness()
             return ChatResponse(
-                answer="Here are the sample scheduled matches currently loaded.",
+                answer=(
+                    "Here are the scheduled matches currently loaded. "
+                    f"Data source: {freshness['source'] or 'seed fallback'}."
+                ),
                 mode="facts",
-                data={"matches": matches, "session_id": session_id},
+                data={"matches": matches, "freshness": freshness, "session_id": session_id},
             )
 
         if "compare" in lowered or lowered.startswith("/compare"):
@@ -117,8 +121,13 @@ class WorldCupAgent:
 
         @function_tool
         def get_match_schedule(team_name: str | None = None) -> list[dict[str, Any]]:
-            """Fetch sample schedule data, optionally filtered by team."""
+            """Fetch schedule data, optionally filtered by team."""
             return tools.get_match_schedule(team_name)
+
+        @function_tool
+        def get_data_freshness() -> dict[str, Any]:
+            """Fetch the schedule cache freshness status."""
+            return tools.get_data_freshness()
 
         return Agent(
             name="WorldCupAgent",
@@ -128,7 +137,7 @@ class WorldCupAgent:
                 "Never invent live results. Say when data is sample or stale. "
                 "Predictions must be framed as probabilities, not guarantees."
             ),
-            tools=[predict_match, get_team_profile, get_match_schedule],
+            tools=[predict_match, get_team_profile, get_match_schedule, get_data_freshness],
         )
 
     @staticmethod

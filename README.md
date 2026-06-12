@@ -41,19 +41,19 @@ tests/               Backend unit tests
 ```bash
 uv sync
 cp .env.example .env
-uv run uvicorn backend.app.main:app --reload --port 8000
+uv run uvicorn backend.app.main:app --reload --port 8010
 ```
 
 Health check:
 
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8010/health
 ```
 
 Prediction example:
 
 ```bash
-curl -X POST http://localhost:8000/predict \
+curl -X POST http://localhost:8010/predict \
   -H "Content-Type: application/json" \
   -d '{"team_a":"Brazil","team_b":"Germany"}'
 ```
@@ -61,7 +61,7 @@ curl -X POST http://localhost:8000/predict \
 Chat example:
 
 ```bash
-curl -X POST http://localhost:8000/chat \
+curl -X POST http://localhost:8010/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"/predict Brazil vs Germany","channel":"web"}'
 ```
@@ -82,18 +82,60 @@ reports/prediction_benchmark_report.csv
 
 The benchmark must only include features known before kickoff. Do not include post-match or final tournament information in historical rows.
 
+## Relai Tools
+
+These commands are JSON-first so Relai, CI, or any scheduler can run them safely.
+
+Refresh the local World Cup 2026 match cache:
+
+```bash
+uv run python -m backend.app.relai_tools sync
+```
+
+Check whether cached match data is fresh:
+
+```bash
+uv run python -m backend.app.relai_tools freshness --max-age-minutes 60 --fail-on-stale
+```
+
+Run prediction benchmarks:
+
+```bash
+uv run python -m backend.app.relai_tools benchmark
+```
+
+Run lightweight smoke checks:
+
+```bash
+uv run python -m backend.app.relai_tools smoke
+```
+
+Suggested Relai schedule:
+
+```text
+Every 15 minutes: sync
+Every 15 minutes after sync: freshness --fail-on-stale
+On every deploy: smoke + benchmark
+```
+
+The backend also exposes:
+
+```text
+GET /data/freshness
+```
+
 ## Frontend Setup
 
 ```bash
 cd frontend
 bun install
-NEXT_PUBLIC_API_URL=http://localhost:8000 bun run dev
+NEXT_PUBLIC_API_URL=http://localhost:8010 bun run dev
 ```
 
 Open:
 
 ```text
-http://localhost:3000
+http://localhost:3010
 ```
 
 ## Docker Setup
@@ -113,11 +155,23 @@ docker compose up --build
 Services:
 
 ```text
-Backend:  http://localhost:8000
-Frontend: http://localhost:3000
+Backend:  http://localhost:8010
+Frontend: http://localhost:3010
 ```
 
-The frontend Docker image bakes `NEXT_PUBLIC_API_URL` at build time. The default Compose value points browser traffic at `http://localhost:8000`.
+The frontend Docker image bakes `NEXT_PUBLIC_API_URL` at build time. The default Compose value points browser traffic at `http://localhost:8010`.
+
+If `/chat` returns a CORS preflight error, set `ALLOWED_ORIGINS` to the exact browser origin you are using:
+
+```bash
+ALLOWED_ORIGINS=http://localhost:3010,http://127.0.0.1:3010
+```
+
+For a tunnel or hosted frontend, append that URL too:
+
+```bash
+ALLOWED_ORIGINS=http://localhost:3010,https://your-frontend-domain.example
+```
 
 ## Telegram Setup
 
@@ -147,6 +201,7 @@ Implemented now:
 - Unit tests for prediction and benchmark behavior.
 - `uv` backend lockfile and `bun` frontend lockfile.
 - Backend and frontend Dockerfiles with Docker Compose.
+- Relai-friendly sync, freshness, benchmark, and smoke commands.
 
 Next useful steps:
 
