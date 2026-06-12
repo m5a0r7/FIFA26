@@ -11,3 +11,15 @@ node_modules/
 dist/
 coverage/
 reports/*.tmp
+data/cache/*.json
+
+# RELAI local files
+.relai/config.toml
+.relai/runs/
+.relai/optimizer_runs/
+.relai/memory
+.relai/optimizer-state/
+.relai/optimizer-scope.json
+.relai/simulator.env
+.relai/tags.json
+.relai/tag-records/

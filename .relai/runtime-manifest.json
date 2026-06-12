@@ -1,0 +1,18 @@
+{
+  "schema_version": "relai.runtime_manifest.v1",
+  "env": [
+    {
+      "name": "OPENAI_API_KEY",
+      "required": false,
+      "sensitive": true,
+      "reason": "Optional when exercising the OpenAI Agents SDK path instead of the deterministic fallback path."
+    },
+    {
+      "name": "RELAI_SIMULATOR_ENABLE_LIVE_OPENAI",
+      "required": false,
+      "sensitive": false,
+      "reason": "Set to 1 to allow the simulator adapter to use the live OpenAI Agents SDK path when an API key is present."
+    }
+  ],
+  "files": []
+}

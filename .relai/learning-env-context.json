@@ -1,0 +1,73 @@
+{
+  "schema_version": "relai.learning_env_context.v1",
+  "agent": {
+    "entrypoint": "backend/app/agents/world_cup_agent.py",
+    "runner_summary": "The simulator builds one WorldCupAgent with a recording FootballTools instance, then calls its async answer(message, session_id) method with plain message-string turns by default."
+  },
+  "components": [
+    {
+      "id": "predict_match",
+      "import_path": "relai_simulator.adapter:predict_match_component",
+      "when_to_use": "Use for isolated prediction regressions where the matchup is known and only the probability payload or explanation factors are in question.",
+      "live_mock_targets": [],
+      "required_mock_targets": [],
+      "input_guidance": "Build FixedComponentInput with kwargs {\"team_a\": \"Brazil\", \"team_b\": \"Germany\"} using the original team names from the log.",
+      "output_guidance": "Evaluate team_a_win, draw, team_b_win, confidence, and top_factors; ignore data_freshness unless the test explicitly mocks time."
+    },
+    {
+      "id": "get_team_profile",
+      "import_path": "relai_simulator.adapter:get_team_profile_component",
+      "when_to_use": "Use when a response references the wrong team attributes or the agent should have surfaced profile details for a named team.",
+      "live_mock_targets": [],
+      "required_mock_targets": [],
+      "input_guidance": "Build FixedComponentInput with kwargs {\"team_name\": \"France\"} or the exact team mentioned in the conversation.",
+      "output_guidance": "Evaluate the returned profile fields such as name, elo, fifa_rank, host, and availability counts."
+    },
+    {
+      "id": "get_match_schedule",
+      "import_path": "relai_simulator.adapter:get_match_schedule_component",
+      "when_to_use": "Use for schedule filtering bugs or stale fixture handling without running the full chat flow.",
+      "live_mock_targets": [
+        "backend.app.tools.football_tools:FootballTools.get_match_schedule"
+      ],
+      "required_mock_targets": [],
+      "input_guidance": "Build FixedComponentInput with kwargs {\"team_name\": \"USA\"} for filtered schedule cases or {\"team_name\": null} for the full loaded slate.",
+      "output_guidance": "Evaluate the returned fixtures list, especially team filtering, date fields, and source-dependent schedule content."
+    },
+    {
+      "id": "get_data_freshness",
+      "import_path": "relai_simulator.adapter:get_data_freshness_component",
+      "when_to_use": "Use for freshness messaging regressions or cache-age handling without invoking the whole agent.",
+      "live_mock_targets": [
+        "backend.app.tools.football_tools:FootballTools.get_data_freshness"
+      ],
+      "required_mock_targets": [],
+      "input_guidance": "Build FixedComponentInput with kwargs {} because this component takes no arguments.",
+      "output_guidance": "Evaluate exists, stale, source, synced_at, age_seconds, and match_count."
+    },
+    {
+      "id": "get_group_standings",
+      "import_path": "relai_simulator.adapter:get_group_standings_component",
+      "when_to_use": "Use for isolated standings regressions when the issue is the returned table rather than the full chat response.",
+      "live_mock_targets": [],
+      "required_mock_targets": [],
+      "input_guidance": "Build FixedComponentInput with kwargs {\"group\": \"A\"} for one group or {\"group\": null} for the full placeholder table.",
+      "output_guidance": "Evaluate group, team, played, points, and goal_difference values in the returned standings rows."
+    }
+  ],
+  "log_notes": [
+    "Agent turns should usually use the raw chat message string, for example /predict Brazil vs Germany.",
+    "The adapter remains backward-compatible with object turns containing message, optional session_id, and optional channel fields when a learning environment needs them.",
+    "Transcript tool_call and tool_result events come from the same FootballTools methods used by both the fallback path and the optional OpenAI Agents SDK tool closures.",
+    "Transcript agent_message events include metadata fields for mode, data, data_source, execution_mode, live_openai_requested, live_openai_used, sdk_agent_available, and session_id.",
+    "When RELAI_SIMULATOR_ENABLE_LIVE_OPENAI is not set to 1, the adapter forces the deterministic fallback path even if OPENAI_API_KEY is present."
+  ],
+  "learning_env_guidance": [
+    "Use FixedInput with plain message-string turns for most regressions in the chat flow.",
+    "Use object turns only when a test specifically needs session_id or channel metadata and the installed RELAI SDK supports non-string FixedTurn content.",
+    "Use FixedInput only when the exact user wording or a short scripted sequence is important to the failure.",
+    "Use PersonaInput when user persistence, tone, or ambiguity matters more than exact phrasing.",
+    "Use LLMJudgeEvaluator for semantic answer quality and CodeEvaluator for deterministic checks over transcript metadata or component outputs.",
+    "Prefer the component targets for isolated prediction, schedule, freshness, standings, or profile regressions instead of end-to-end agent runs."
+  ]
+}

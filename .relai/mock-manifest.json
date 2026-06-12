@@ -1,0 +1,41 @@
+{
+  "schema_version": "relai.mock_manifest.v1",
+  "items": [
+    {
+      "id": "predict_match",
+      "target": "backend.app.tools.football_tools:FootballTools.predict_match",
+      "kind": "tool",
+      "final_policy": "do_not_mock",
+      "reason": "Pure local prediction logic with seeded team inputs; keep it live so agent and component runs exercise the actual probability calculation.",
+      "source": "backend/app/agents/world_cup_agent.py",
+      "cannot_mock_reason": null
+    },
+    {
+      "id": "get_team_profile",
+      "target": "backend.app.tools.football_tools:FootballTools.get_team_profile",
+      "kind": "tool",
+      "final_policy": "do_not_mock",
+      "reason": "Reads deterministic local team snapshot data without external side effects.",
+      "source": "backend/app/agents/world_cup_agent.py",
+      "cannot_mock_reason": null
+    },
+    {
+      "id": "get_match_schedule",
+      "target": "backend.app.tools.football_tools:FootballTools.get_match_schedule",
+      "kind": "tool",
+      "final_policy": "do_not_mock",
+      "reason": "Reads mutable cache-backed schedule data that can change across runs after syncs or local fixture updates, so default simulations should control it explicitly.",
+      "source": "backend/app/agents/world_cup_agent.py",
+      "cannot_mock_reason": null
+    },
+    {
+      "id": "get_data_freshness",
+      "target": "backend.app.tools.football_tools:FootballTools.get_data_freshness",
+      "kind": "tool",
+      "final_policy": "do_not_mock",
+      "reason": "Depends on cache timestamps and the current clock, so freshness output is time-sensitive and nondeterministic.",
+      "source": "backend/app/agents/world_cup_agent.py",
+      "cannot_mock_reason": null
+    }
+  ]
+}
