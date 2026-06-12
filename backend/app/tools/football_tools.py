@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
 
 from backend.app.data.cache import get_cached_matches, get_match_cache_status
 from backend.app.data.mock_data import MATCHES, STANDINGS, TEAM_SNAPSHOTS
 from backend.app.prediction.engine import PredictionEngine, TeamSnapshot
+
+
+TEAM_ALIASES = {
+    "america": "usa",
+    "korearepublic": "southkorea",
+    "republicofkorea": "southkorea",
+    "turkey": "turkiye",
+    "unitedstates": "usa",
+    "unitedstatesofamerica": "usa",
+    "us": "usa",
+    "usmnt": "usa",
+}
 
 
 class FootballTools:
@@ -43,6 +56,20 @@ class FootballTools:
             if normalized in (self._normalize(match["team_a"]), self._normalize(match["team_b"]))
         ]
 
+    def get_next_matches(self, reference_date: str | date | None = None) -> list[dict[str, Any]]:
+        target_date = self._coerce_date(reference_date) or date.today()
+        upcoming = [
+            match
+            for match in self._matches()
+            if (match_date := self._coerce_date(match.get("date"))) is not None and match_date >= target_date
+        ]
+        if not upcoming:
+            return []
+
+        upcoming.sort(key=lambda match: str(match.get("date") or ""))
+        next_date = upcoming[0].get("date")
+        return [match for match in upcoming if match.get("date") == next_date]
+
     def get_group_standings(self, group: str | None = None) -> list[dict[str, Any]]:
         if not group:
             return STANDINGS
@@ -73,22 +100,19 @@ class FootballTools:
 
     def extract_matchup(self, message: str) -> tuple[str, str] | None:
         cleaned = re.sub(r"^/(predict|compare)\s+", "", message.strip(), flags=re.IGNORECASE)
+        mentioned = self._mentioned_teams(cleaned)
+        if len(mentioned) >= 2:
+            return mentioned[0], mentioned[1]
+
         match = re.search(r"(.+?)\s+(?:vs\.?|v\.?|against)\s+(.+)", cleaned, flags=re.IGNORECASE)
         if match:
             return self._clean_team(match.group(1)), self._clean_team(match.group(2))
-
-        mentioned = []
-        lowered = cleaned.lower()
-        for key, snapshot in TEAM_SNAPSHOTS.items():
-            if re.search(rf"\b{re.escape(key)}\b", lowered):
-                mentioned.append(snapshot.name)
-        if len(mentioned) >= 2:
-            return mentioned[0], mentioned[1]
 
         return None
 
     def _find_team(self, team_name: str) -> TeamSnapshot:
         normalized = self._normalize(team_name)
+        normalized = TEAM_ALIASES.get(normalized, normalized)
         if normalized in TEAM_SNAPSHOTS:
             return TEAM_SNAPSHOTS[normalized]
 
@@ -101,6 +125,29 @@ class FootballTools:
 
     def _matches(self) -> list[dict[str, Any]]:
         return get_cached_matches() or MATCHES
+
+    @staticmethod
+    def _coerce_date(value: object) -> date | None:
+        if isinstance(value, date):
+            return value
+        if not isinstance(value, str):
+            return None
+        try:
+            return date.fromisoformat(value[:10])
+        except ValueError:
+            return None
+
+    def _mentioned_teams(self, value: str) -> list[str]:
+        normalized_value = self._normalize(value)
+        matches: list[tuple[int, str]] = []
+        for key, snapshot in TEAM_SNAPSHOTS.items():
+            candidates = {key, self._normalize(snapshot.name)}
+            positions = [normalized_value.find(candidate) for candidate in candidates if candidate in normalized_value]
+            if positions:
+                matches.append((min(position for position in positions if position >= 0), snapshot.name))
+
+        matches.sort(key=lambda item: item[0])
+        return [team for _, team in matches]
 
     @staticmethod
     def _clean_team(value: str) -> str:

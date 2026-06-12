@@ -38,7 +38,7 @@ export async function sendChat(message: string): Promise<ChatResponse> {
   });
 
   if (!response.ok) {
-    throw new Error(`Chat request failed with status ${response.status}`);
+    throw new Error(await errorMessage(response, "Chat request failed"));
   }
 
   return response.json();
@@ -52,7 +52,7 @@ export async function predictMatch(teamA: string, teamB: string): Promise<Predic
   });
 
   if (!response.ok) {
-    throw new Error(`Prediction request failed with status ${response.status}`);
+    throw new Error(await errorMessage(response, "Prediction request failed"));
   }
 
   return response.json();
@@ -62,8 +62,20 @@ export async function fetchMatches(): Promise<Match[]> {
   const response = await fetch(`${API_URL}/matches`);
 
   if (!response.ok) {
-    throw new Error(`Schedule request failed with status ${response.status}`);
+    throw new Error(await errorMessage(response, "Schedule request failed"));
   }
 
   return response.json();
+}
+
+async function errorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await response.json();
+    if (typeof payload?.detail === "string") {
+      return payload.detail;
+    }
+  } catch {
+    // Fall back to the status when the server does not return JSON.
+  }
+  return `${fallback} with status ${response.status}`;
 }

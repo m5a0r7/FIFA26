@@ -14,6 +14,32 @@ class RelaiToolsTest(unittest.TestCase):
         self.assertGreater(len(matches), 0)
         self.assertFalse(any("TBD" in {match.get("team_a"), match.get("team_b")} for match in matches))
 
+    def test_next_matches_skip_past_seed_fixtures(self) -> None:
+        matches = FootballTools().get_next_matches("2026-06-12")
+
+        self.assertEqual({match["date"] for match in matches}, {"2026-06-12"})
+        self.assertIn(
+            ("Canada", "Bosnia and Herzegovina"),
+            {(match["team_a"], match["team_b"]) for match in matches},
+        )
+        self.assertNotIn(
+            ("Mexico", "South Africa"),
+            {(match["team_a"], match["team_b"]) for match in matches},
+        )
+
+    def test_extract_matchup_prefers_known_team_names_in_long_questions(self) -> None:
+        matchup = FootballTools().extract_matchup(
+            "According to your schedule, what is the live score for Canada vs Bosnia and Herzegovina on 2026-06-12, and who won?"
+        )
+
+        self.assertEqual(matchup, ("Canada", "Bosnia and Herzegovina"))
+
+    def test_prediction_accepts_common_team_aliases(self) -> None:
+        prediction = FootballTools().predict_match("United States", "Turkey")
+
+        self.assertEqual(prediction["team_a"], "USA")
+        self.assertEqual(prediction["team_b"], "Turkiye")
+
     def test_cache_status_tracks_written_matches(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "matches.json"

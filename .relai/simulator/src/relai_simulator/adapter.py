@@ -24,6 +24,14 @@ def get_match_schedule_component(team_name: str | None = None) -> list[dict[str,
     return FootballTools().get_match_schedule(team_name)
 
 
+def get_match_result_component(team_a: str, team_b: str) -> dict[str, Any]:
+    return FootballTools().get_match_result(team_a, team_b)
+
+
+def get_next_matches_component() -> list[dict[str, Any]]:
+    return FootballTools().get_next_matches()
+
+
 def get_data_freshness_component() -> dict[str, Any]:
     return FootballTools().get_data_freshness()
 
@@ -149,6 +157,20 @@ class _RecordingFootballTools(FootballTools):
             "get_match_schedule",
             {"team_name": team_name},
             lambda: FootballTools.get_match_schedule(self, team_name),
+        )
+
+    def get_match_result(self, team_a: str, team_b: str) -> dict[str, Any]:
+        return self._recorder.record(
+            "get_match_result",
+            {"team_a": team_a, "team_b": team_b},
+            lambda: FootballTools.get_match_result(self, team_a, team_b),
+        )
+
+    def get_next_matches(self, reference_date: str | None = None) -> list[dict[str, Any]]:
+        return self._recorder.record(
+            "get_next_matches",
+            {"reference_date": reference_date},
+            lambda: FootballTools.get_next_matches(self, reference_date),
         )
 
     def get_data_freshness(self) -> dict[str, Any]:

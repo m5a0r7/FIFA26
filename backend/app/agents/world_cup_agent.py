@@ -70,13 +70,66 @@ class WorldCupAgent:
                 data={"standings": standings, "session_id": session_id},
             )
 
-        if "today" in lowered or "schedule" in lowered or "next" in lowered or lowered.startswith("/today"):
+        if any(phrase in lowered for phrase in ("live score", "final result", "final score", "who won", "winner")):
+            matchup = self.tools.extract_matchup(message)
+            freshness = self.tools.get_data_freshness()
+            if matchup:
+                result = self.tools.get_match_result(*matchup)
+                team_a = result.get("team_a", matchup[0])
+                team_b = result.get("team_b", matchup[1])
+                status = str(result.get("status") or "unknown")
+                score = result.get("score")
+                if score in (None, "", []) and status.lower() not in {"completed", "final", "finished"}:
+                    return ChatResponse(
+                        answer=(
+                            f"I do not have a result for {team_a} vs {team_b}: no confirmed live score, "
+                            "no confirmed final score, and no confirmed winner. "
+                            f"The loaded match status is {status}. {self._freshness_text(freshness)}"
+                        ),
+                        mode="facts",
+                        data={"result": result, "freshness": freshness, "session_id": session_id},
+                    )
+
+                return ChatResponse(
+                    answer=(
+                        f"The loaded result for {team_a} vs {team_b} is {score or 'unavailable'} "
+                        f"with status {status}. {self._freshness_text(freshness)}"
+                    ),
+                    mode="facts",
+                    data={"result": result, "freshness": freshness, "session_id": session_id},
+                )
+
+        if "next" in lowered:
+            matches = self.tools.get_next_matches()
+            freshness = self.tools.get_data_freshness()
+            if not matches:
+                return ChatResponse(
+                    answer=(
+                        "I do not have any upcoming matches in the currently loaded schedule. "
+                        f"{self._freshness_text(freshness)}"
+                    ),
+                    mode="facts",
+                    data={"matches": matches, "freshness": freshness, "session_id": session_id},
+                )
+
+            match_date = matches[0].get("date", "the next loaded date")
+            pairings = ", ".join(f"{match['team_a']} vs {match['team_b']}" for match in matches)
+            return ChatResponse(
+                answer=(
+                    f"The next loaded World Cup match date is {match_date}: {pairings}. "
+                    f"{self._freshness_text(freshness)}"
+                ),
+                mode="facts",
+                data={"matches": matches, "freshness": freshness, "session_id": session_id},
+            )
+
+        if "today" in lowered or "schedule" in lowered or lowered.startswith("/today"):
             matches = self.tools.get_match_schedule()
             freshness = self.tools.get_data_freshness()
             return ChatResponse(
                 answer=(
                     "Here are the scheduled matches currently loaded. "
-                    f"Data source: {freshness['source'] or 'seed fallback'}."
+                    f"{self._freshness_text(freshness)}"
                 ),
                 mode="facts",
                 data={"matches": matches, "freshness": freshness, "session_id": session_id},
@@ -125,6 +178,16 @@ class WorldCupAgent:
             return tools.get_match_schedule(team_name)
 
         @function_tool
+        def get_match_result(team_a: str, team_b: str) -> dict[str, Any]:
+            """Fetch the loaded match result or status for a matchup."""
+            return tools.get_match_result(team_a, team_b)
+
+        @function_tool
+        def get_next_matches() -> list[dict[str, Any]]:
+            """Fetch the next upcoming loaded match date and its fixtures."""
+            return tools.get_next_matches()
+
+        @function_tool
         def get_data_freshness() -> dict[str, Any]:
             """Fetch the schedule cache freshness status."""
             return tools.get_data_freshness()
@@ -134,11 +197,25 @@ class WorldCupAgent:
             instructions=(
                 "You are a FIFA World Cup 2026 football intelligence assistant. "
                 "Use tools for schedules, team data, and predictions. "
+                "For next-match questions, use get_next_matches instead of listing old fixtures. "
+                "For score, result, or winner questions, check loaded result data before answering. "
                 "Never invent live results. Say when data is sample or stale. "
                 "Predictions must be framed as probabilities, not guarantees."
             ),
-            tools=[predict_match, get_team_profile, get_match_schedule, get_data_freshness],
+            tools=[predict_match, get_team_profile, get_match_schedule, get_match_result, get_next_matches, get_data_freshness],
         )
+
+    @staticmethod
+    def _freshness_text(freshness: dict[str, Any]) -> str:
+        source = freshness.get("source") or "seed fallback"
+        qualifiers = ["not official real-time FIFA data"]
+        source_lower = str(source).lower()
+        if freshness.get("stale"):
+            qualifiers.append("stale")
+        if any(token in source_lower for token in ("sample", "seed", "fallback", "mock", "placeholder")):
+            qualifiers.append("sample/cached")
+        qualifier_text = ", ".join(dict.fromkeys(qualifiers))
+        return f"Data source: {source}; {qualifier_text}."
 
     @staticmethod
     def _prediction_text(prediction: dict[str, Any]) -> str:
