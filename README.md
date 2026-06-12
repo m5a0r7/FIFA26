@@ -152,6 +152,14 @@ Run both services:
 docker compose up --build
 ```
 
+For hot reload while developing:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+This runs Uvicorn with `--reload` and Next.js with `next dev`, with the local `backend/`, `data/`, and `frontend/` directories mounted into the containers. Backend code/data edits restart the API process, and frontend edits are reflected by the Next dev server. Rebuild the dev stack after changing `pyproject.toml`, `uv.lock`, `frontend/package.json`, or `frontend/bun.lock`.
+
 Services:
 
 ```text
