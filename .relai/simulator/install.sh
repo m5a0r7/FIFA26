@@ -322,7 +322,10 @@ export RELAI_CONFIG_PYTHON="$VENV_DIR/bin/python"
 install_relai_sdk "$VENV_DIR/bin/python" uv
 # END RELAI CLI SDK INSTALL
 # BEGIN PROJECT DEPENDENCY INSTALL
-mapfile -t project_dependencies < <("$VENV_DIR/bin/python" - "$ROOT_DIR/pyproject.toml" <<'PY'
+project_dependencies=()
+while IFS= read -r dependency; do
+  project_dependencies+=("$dependency")
+done < <("$VENV_DIR/bin/python" - "$ROOT_DIR/pyproject.toml" <<'PY'
 from pathlib import Path
 import sys
 import tomllib
